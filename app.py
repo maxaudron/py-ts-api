@@ -18,14 +18,13 @@ class User():
 
     def generate_auth_token(userdata, ip, expiration = 6000):
         s = Serializer('SECRET_KEY', expires_in = expiration)
-        return s.dumps({ 'username': userdata['username'], 'password': userdata['password'], 'ip': ip })
+        return s.dumps({ 'username': userdata['username'], 'password': userdata['password'], 'ip': ip }) # creates token
 
     @staticmethod
     def verify_auth_token(token):
         s = Serializer('SECRET_KEY')
         try:
-            data = s.loads(token)
-            print(data)
+            data = s.loads(token)  # decrypts the token
         except SignatureExpired:
             return None # valid token, but expired
         except BadSignature:
@@ -35,21 +34,21 @@ class User():
 @app.route('/api/auth')
 @auth.login_required
 def get_auth_token():
-    token = User.generate_auth_token(g.userdata, request.headers['ip'])
-    return jsonify({ 'token': token.decode('ascii') })
+    token = User.generate_auth_token(g.userdata, request.headers['ip']) # passes on username, password and server ip
+    return jsonify({ 'token': token.decode('ascii') }) # returns token
 
 @auth.verify_password
 def verify_password(username, password):
-    user = User.verify_auth_token(username)
-    if not user:
+    user = User.verify_auth_token(username) # checks if auth method is token based and validates the token if yes
+    if not user:                            # if not token based uses password auth
         print('password auth')
-        with ts3.query.TS3Connection(request.headers['ip']) as ts3conn:
+        with ts3.query.TS3Connection(request.headers['ip']) as ts3conn: # connect to teamspeak server
             try:
                 ts3conn.login(client_login_name=username, client_login_password=password) # login to ts and check if valid
                 g.userdata = {'username': username, 'password': password}
                 return True
 
-            except ts3.query.TS3QueryError as err:
+            except ts3.query.TS3QueryError as err:# shows error message if login fails
                 print("Login failed:", err.resp.error["msg"])
                 return False
     g.userdata = user
@@ -60,8 +59,6 @@ def verify_password(username, password):
 def index():
     with ts3.query.TS3Connection(g.userdata['ip']) as ts3conn:
         try:
-            print(g.userdata['username'])
-            print(g.userdata['password'])
             ts3conn.login(client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
 
         except ts3.query.TS3QueryError as err:
