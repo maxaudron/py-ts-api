@@ -16,7 +16,7 @@ I recommend using a virtual python enviroment and will be using pyenv-virtualenv
 Clone the repo and switch to it  
     `git clone https://gitlab.com/audron/py-ts-api.git`  
     `cd py-ts-api`  
-Install python version and create virtualenv
+Install python version and create virtualenv  
     `pyenv install 3.6.2`  
     `pyenv virtualenv 3.6.2 py-ts-api` 
 Set local python version to our virtualenv  
