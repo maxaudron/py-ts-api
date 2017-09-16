@@ -35,7 +35,7 @@ class User():
 def index():
     return 'welcome. api located at /api'
 
-@app.route('/api/auth')
+@app.route('/auth')
 @auth.login_required
 def get_auth_token():
     token = User.generate_auth_token(g.userdata, request.headers['ip']) # passes on username, password and server ip
@@ -43,7 +43,7 @@ def get_auth_token():
 
 @auth.verify_password
 def verify_password(username, password):
-    if request.path == '/api/auth':              # if user requests token use password auth
+    if request.path == '/auth':              # if user requests token use password auth
         print('generating token')
         try:
             ts3conn = ts3.query.TS3Connection(request.headers['ip']) # connect to teamspeak server
@@ -68,7 +68,7 @@ def verify_password(username, password):
     g.userdata = user
     return True
 
-@app.route('/api/get/<command>')
+@app.route('/get/<command>')
 @auth.login_required
 def get(command):
     try:
@@ -93,7 +93,7 @@ def get(command):
         print('Connection to server failed:', err.resp.error['msg'])
         return jsonify({'error': 'Connection to server failed. Check if IP is correct'})
 
-@app.route('/api/post/<command>', methods=['POST'])
+@app.route('/post/<command>', methods=['POST'])
 @auth.login_required
 def post(command):
     try:
