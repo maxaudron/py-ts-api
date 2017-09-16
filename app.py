@@ -41,16 +41,22 @@ def get_auth_token():
 def verify_password(username, password):
     if request.path == '/api/auth':              # if user requests token use password auth
         print('generating token')
-        with ts3.query.TS3Connection(request.headers['ip']) as ts3conn: # connect to teamspeak server
+        try:
+            ts3conn = ts3.query.TS3Connection(request.headers['ip']) # connect to teamspeak server
             try:
+                print('logging in')
                 ts3conn.login(client_login_name=username, client_login_password=password) # login to ts and check if valid
                 g.userdata = {'username': username, 'password': password}
                 return True
 
             except ts3.query.TS3QueryError as err:# shows error message if login fails
-                print("Login failed:", err.resp.error["msg"])
+                print('Login failed:', err.resp.error['msg'])
                 return False
-            print("Error:", resp.error["id"], resp.error["msg"])
+            print('Error:', resp.error['id'], resp.error['msg'])
+
+        except ts3.query.TS3TimeoutError as err:
+            print('Connection to server failed:', err.resp.error['msg'])
+            return False
     else:
         user = User.verify_auth_token(username)
         if not user:
@@ -61,44 +67,53 @@ def verify_password(username, password):
 @app.route('/api/get/<command>')
 @auth.login_required
 def get(command):
-    with ts3.query.TS3Connection(g.userdata['ip']) as ts3conn:
+    try:
+        ts3conn = ts3.query.TS3Connection(g.userdata['ip'])
         try:
             ts3conn.login(client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
+            ts3conn.use(sid=request.headers['sid'])
 
         except ts3.query.TS3QueryError as err:
             return jsonify("Login failed:", err.resp.error["msg"])
             exit(1)
 
-        ts3conn.use(sid=request.headers['sid'])
         try:
             func = getattr(ts3conn, command)
         except AttributeError:
             return jsonify({'message': 'Command not found: {0}' .format(command) })
         else:
             res = func()
-        return jsonify(res.parsed)
+            return jsonify(res.parsed)
+
+    except ts3.query.TS3TimeoutError as err:
+        print('Connection to server failed:', err.resp.error['msg'])
+        return jsonify({'error': 'Connection to server failed. Check if IP is correct'})
 
 @app.route('/api/post/<command>', methods=['POST'])
 @auth.login_required
 def post(command):
-    with ts3.query.TS3Connection(g.userdata['ip']) as ts3conn:
-        print(request.get_json())
+    try:
+        ts3conn = ts3.query.TS3Connection(g.userdata['ip'])
         req = request.get_json()
         try:
             ts3conn.login(client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
+            ts3conn.use(sid=request.headers['sid'])
 
         except ts3.query.TS3QueryError as err:
             return jsonify("Login failed:", err.resp.error["msg"])
             exit(1)
 
-        ts3conn.use(sid=request.headers['sid'])
         try:
             func = getattr(ts3conn, command)
         except AttributeError:
             return jsonify({'message': 'Command not found: {0}' .format(command) })
         else:
             res = func(**req)
-        return jsonify(res.parsed)
+            return jsonify(res.parsed)
+
+    except ts3.query.TS3TimeoutError as err:
+        print('Connection to server failed:', err.resp.error['msg'])
+        return jsonify({'error': 'Connection to server failed. Check if IP is correct'})
 
 if __name__ == '__main__':
     app.run(debug=True)
