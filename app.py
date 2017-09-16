@@ -31,6 +31,10 @@ class User():
             return None # invalid token
         return data
 
+@app.route('/')
+def index():
+    return 'welcome. api located at /api'
+
 @app.route('/api/auth')
 @auth.login_required
 def get_auth_token():
