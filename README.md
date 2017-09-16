@@ -1,6 +1,6 @@
 # py-ts-api  
 ## A REST API for TeamSpeak Serverquery written in Python  
-___ 
+  
 ### Installation  
 #### Dependencies
 * Python 3+ (i recommend 3.6.2)
