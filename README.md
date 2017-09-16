@@ -18,7 +18,7 @@ Clone the repo and switch to it
     `cd py-ts-api`  
 Install python version and create virtualenv  
     `pyenv install 3.6.2`  
-    `pyenv virtualenv 3.6.2 py-ts-api` 
+    `pyenv virtualenv 3.6.2 py-ts-api`  
 Set local python version to our virtualenv  
     `pyenv local py-ts-api`  
 Install dependencies  
