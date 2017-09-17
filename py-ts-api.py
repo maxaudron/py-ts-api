@@ -3,11 +3,13 @@ from flask import Flask
 from flask import jsonify
 from flask import g
 from flask import request
+from flask_cors import CORS
 from flask_httpauth import HTTPBasicAuth
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 import ts3
 
 app = Flask(__name__)
+CORS(app)
 auth = HTTPBasicAuth()
 
 # Config
