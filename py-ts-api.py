@@ -53,12 +53,13 @@ def verify_password(username, password):
                 print('logging in')
                 ts3conn.login(client_login_name=username, client_login_password=password) # login to ts and check if valid
                 g.userdata = {'username': username, 'password': password}
+                ts3conn.quit()
                 return True
 
             except ts3.query.TS3QueryError as err:# shows error message if login fails
                 print('Login failed:', err.resp.error['msg'])
+                ts3conn.quit()
                 return False
-            print('Error:', resp.error['id'], resp.error['msg'])
 
         except ts3.query.TS3TimeoutError as err:
             print('Connection to server failed:', err.resp.error['msg'])
@@ -86,9 +87,11 @@ def get(command):
         try:
             func = getattr(ts3conn, command)
         except AttributeError:
+            ts3conn.quit()
             return jsonify({'message': 'Command not found: {0}' .format(command) })
         else:
             res = func()
+            ts3conn.quit()
             return jsonify(res.parsed)
 
     except ts3.query.TS3TimeoutError as err:
@@ -112,9 +115,11 @@ def post(command):
         try:
             func = getattr(ts3conn, command)
         except AttributeError:
+            ts3conn.quit()
             return jsonify({'message': 'Command not found: {0}' .format(command) })
         else:
             res = func(**req)
+            ts3conn.quit()
             return jsonify(res.parsed)
 
     except ts3.query.TS3TimeoutError as err:
