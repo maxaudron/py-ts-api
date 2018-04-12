@@ -1,73 +1,73 @@
 #!/usr/bin/env python
-from flask import Flask
-from flask import jsonify
-from flask import g
-from flask import request
+from flask_api import FlaskAPI, status
+from flask import jsonify, g, request
 from flask_cors import CORS
-from flask_httpauth import HTTPBasicAuth
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
+from flask_httpauth import HTTPTokenAuth
+from jwcrypto import jwk, jwe
+from jwcrypto.common import json_encode
+
+import json
+
 import ts3
 
-app = Flask(__name__)
+app = FlaskAPI(__name__)
 CORS(app)
-auth = HTTPBasicAuth()
+auth = HTTPTokenAuth('Bearer')
 
 # Config
-app.config['SECRET_KEY'] = 'a long secret to encrypt user data' # Secret used for generation of auth token PLEASE CHANGE
+app.config['JWT_SECRET'] = 'a long secret to verify jwt tokens' # Secret used for generation of auth token PLEASE CHANGE
+#app.config['CRYPT_KEY'] = u'supersecretkeyv2'
+app.config['CRYPT_KEY'] = 'CHANGEME' # Generate a key using keygen.py and paste it here
+
+key = jwk.JWK(**app.config['CRYPT_KEY'])
 
 class User():
     # ...
 
-    def generate_auth_token(userdata, ip, expiration = 6000):
-        s = Serializer(app.config['SECRET_KEY'], expires_in = expiration)
-        return s.dumps({ 'username': userdata['username'], 'password': userdata['password'], 'ip': ip }) # creates token
+    def generate_auth_token(username, password, ip):
+        payload = json_encode({ 'username': username, 'password': password, 'ip': ip })
+        jwetoken = jwe.JWE(payload.encode('utf-8'), json_encode({"alg": "A256KW", "enc": "A256CBC-HS512"})) # creates token
+        jwetoken.add_recipient(key)
+        return jwetoken.serialize()
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
-        try:
-            data = s.loads(token)  # decrypts the token
-        except SignatureExpired:
-            return None # valid token, but expired
-        except BadSignature:
-            return None # invalid token
-        return data
+         jwetoken = jwe.JWE()
+         jwetoken.deserialize(token)
+         jwetoken.decrypt(key)
+         data = jwetoken.payload.decode('utf-8')
+         data = json.loads(data)
+         return data
 
 @app.route('/')
 def index():
     return 'welcome. api located at /api'
 
 @app.route('/auth')
-@auth.login_required
 def get_auth_token():
-    token = User.generate_auth_token(g.userdata, request.headers['ip']) # passes on username, password and server ip
-    return jsonify({ 'token': token.decode('ascii') }) # returns token
-
-@auth.verify_password
-def verify_password(username, password):
-    if request.path == '/auth':              # if user requests token use password auth
-        print('generating token')
+    try:
+        auth = request.authorization
+        ts3conn = ts3.query.TS3ServerConnection(request.headers['ip']) # connect to teamspeak server
         try:
-            ts3conn = ts3.query.TS3Connection(request.headers['ip']) # connect to teamspeak server
-            try:
-                print('logging in')
-                ts3conn.login(client_login_name=username, client_login_password=password) # login to ts and check if valid
-                g.userdata = {'username': username, 'password': password}
-                ts3conn.quit()
-                return True
+            print('logging in')
+            ts3conn.exec_('login', client_login_name=auth.username, client_login_password=auth.password) # login to ts and check if valid
+            ts3conn.close()
+            token = User.generate_auth_token(auth.username, auth.password, request.headers['ip']) # passes on username, password and server ip
+            return token # returns token
 
-            except ts3.query.TS3QueryError as err:# shows error message if login fails
-                print('Login failed:', err.resp.error['msg'])
-                ts3conn.quit()
-                return False
+        except ts3.query.TS3QueryError as err:# shows error message if login fails
+            ts3conn.close()
+            return { 'error': err.resp.error['msg'] }, status.HTTP_401_UNAUTHORIZED
 
-        except ts3.query.TS3TimeoutError as err:
-            print('Connection to server failed:', err.resp.error['msg'])
-            return False
-    else:
-        user = User.verify_auth_token(username)
-        if not user:
-            return False
+    except ts3.query.TS3TimeoutError as err:
+        return { 'error': err.resp.error['msg'] }, status.HTTP_400_BAD_REQUEST
+
+@auth.verify_token
+def verify_token(token):
+    print('verify')
+    user = User.verify_auth_token(token)
+    if not user:
+        return False
     g.userdata = user
     return True
 
@@ -75,23 +75,23 @@ def verify_password(username, password):
 @auth.login_required
 def get(command):
     try:
-        ts3conn = ts3.query.TS3Connection(g.userdata['ip'])
+        ts3conn = ts3.query.TS3ServerConnection(g.userdata['ip'])
         try:
-            ts3conn.login(client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
-            ts3conn.use(sid=request.headers['sid'])
+            ts3conn.exec_('login', client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
+            ts3conn.exec_('use', sid=request.headers['sid'])
 
         except ts3.query.TS3QueryError as err:
             return jsonify("Login failed:", err.resp.error["msg"])
             exit(1)
 
         try:
-            func = getattr(ts3conn, command)
+            query = ts3conn.exec_(command)
         except AttributeError:
-            ts3conn.quit()
+            ts3conn.close()
             return jsonify({'message': 'Command not found: {0}' .format(command) })
         else:
-            res = func()
-            ts3conn.quit()
+            res = query
+            ts3conn.close()
             return jsonify(res.parsed)
 
     except ts3.query.TS3TimeoutError as err:
@@ -102,24 +102,24 @@ def get(command):
 @auth.login_required
 def post(command):
     try:
-        ts3conn = ts3.query.TS3Connection(g.userdata['ip'])
+        ts3conn = ts3.query.TS3ServerConnection(g.userdata['ip'])
         req = request.get_json()
         try:
-            ts3conn.login(client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
-            ts3conn.use(sid=request.headers['sid'])
+            ts3conn.exec_('login', client_login_name=g.userdata['username'], client_login_password=g.userdata['password'])
+            ts3conn.exec_('use', sid=request.headers['sid'])
 
         except ts3.query.TS3QueryError as err:
             return jsonify("Login failed:", err.resp.error["msg"])
             exit(1)
 
         try:
-            func = getattr(ts3conn, command)
+            query = ts3conn.exec_(command, **req)
         except AttributeError:
-            ts3conn.quit()
+            ts3conn.close()
             return jsonify({'message': 'Command not found: {0}' .format(command) })
         else:
-            res = func(**req)
-            ts3conn.quit()
+            res = query
+            ts3conn.close()
             return jsonify(res.parsed)
 
     except ts3.query.TS3TimeoutError as err:
