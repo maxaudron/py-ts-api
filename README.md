@@ -5,7 +5,7 @@
 * Python 3+ (i recommend 3.6.2)
 * pyenv (optional)
 * PiP
-  * flask
+  * flaskapi
   * flask_httpauth
   * jwcrypto
   * ts3 (py-ts3)
@@ -23,7 +23,7 @@ Set local python version to our virtualenv
 Install dependencies  
     `pip install -r requirements.txt`  
   
-You are now ready to run the API in a development enviroment with `./app.py` if you are only using it in private this may be ok but for heavier usage i highly recommend deploying it to a preduction enviroment.
+You are now ready to run the API in a development enviroment with `./app.py` if you are only using it in private this may be ok but for heavier usage i highly recommend deploying it to a production environment.
 For more details on that refer to the [Flask documentation](http://flask.pocoo.org/docs/0.12/deploying/#deployment)  
   
 ### Usage  
