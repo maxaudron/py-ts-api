@@ -2,5 +2,5 @@ flask
 flask_httpauth
 flask_cors
 Flask-API
-git+https://github.com/benediktschmitt/py-ts3.git
+ts3=2.0.0b1
 jwcrypto
