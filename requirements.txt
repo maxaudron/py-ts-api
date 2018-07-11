@@ -2,5 +2,5 @@ flask
 flask_httpauth
 flask_cors
 Flask-API
-ts3=2.0.0b1
+ts3==2.0.0b1
 jwcrypto
