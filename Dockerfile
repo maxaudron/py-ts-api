@@ -12,7 +12,7 @@ RUN pip install -r requirements.txt
 RUN pip install gunicorn
 
 # Make port 80 available to the world outside this container
-EXPOSE 80
+EXPOSE 8000
 
 # Run app.py when the container launches
 CMD ["gunicorn", "-w 4", "py-ts-api:app"]
