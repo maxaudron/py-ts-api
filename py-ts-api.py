@@ -5,8 +5,9 @@ from flask_cors import CORS
 from flask_httpauth import HTTPTokenAuth
 from jwcrypto import jwk, jwe
 from jwcrypto.common import json_encode
-
 import json
+
+import os
 
 import ts3
 
@@ -17,7 +18,11 @@ auth = HTTPTokenAuth('Bearer')
 # Config
 app.config['JWT_SECRET'] = 'a long secret to verify jwt tokens' # Secret used for generation of auth token PLEASE CHANGE
 #app.config['CRYPT_KEY'] = u'supersecretkeyv2'
-app.config['CRYPT_KEY'] = 'CHANGEME' # Generate a key using keygen.py and paste it here
+
+if os.environ.get('TS_CRYPT_KEY'):
+    app.config['CRYPT_KEY'] = json.loads(os.environ.get('TS_CRYPT_KEY'))
+else:
+    app.config['CRYPT_KEY'] = "CHANGEME" # Generate a key using keygen.py and paste it here
 
 key = jwk.JWK(**app.config['CRYPT_KEY'])
 
