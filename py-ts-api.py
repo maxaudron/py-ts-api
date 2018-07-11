@@ -17,13 +17,17 @@ auth = HTTPTokenAuth('Bearer')
 
 # Config
 app.config['JWT_SECRET'] = 'a long secret to verify jwt tokens' # Secret used for generation of auth token PLEASE CHANGE
-#app.config['CRYPT_KEY'] = u'supersecretkeyv2'
 
-if os.environ.get('TS_CRYPT_KEY'):
-    app.config['CRYPT_KEY'] = json.loads(os.environ.get('TS_CRYPT_KEY'))
-else:
-    app.config['CRYPT_KEY'] = "CHANGEME" # Generate a key using keygen.py and paste it here
+# app.config['CRYPT_KEY'] = "CHANGEME" # Generate a key using keygen.py and paste it here
 
+
+if not app.config['CRYPT_KEY']:
+    if os.environ.get('TS_CRYPT_KEY'):
+        app.config['CRYPT_KEY'] = json.loads(os.environ.get('TS_CRYPT_KEY'))
+    else:
+        print('Neither CRYPT_KEY nor ENV TS_CRYPT_KEY were found exiting.')
+        exit(1)
+    
 key = jwk.JWK(**app.config['CRYPT_KEY'])
 
 class User():
