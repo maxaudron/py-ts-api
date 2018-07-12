@@ -22,7 +22,6 @@ app.config['CRYPT_KEY'] = "CHANGEME" # Generate a key using keygen.py and paste 
 
 if app.config['CRYPT_KEY'] == "CHANGEME":
     if os.environ.get('TS_CRYPT_KEY'):
-        print(os.environ.get('TS_CRYPT_KEY'))
         app.config['CRYPT_KEY'] = json.loads(os.environ.get('TS_CRYPT_KEY'))
     else:
         print('Neither CRYPT_KEY nor ENV TS_CRYPT_KEY were found, exiting.')
