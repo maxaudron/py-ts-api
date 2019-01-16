@@ -35,7 +35,7 @@ spec:
         - name: DATABASE_URL
           value: {{ .Values.application.database_url | quote }}
         - name: TS_CRYPT_KEY
-          value: {{ .Values.application.ts_crypt_key }}
+          value: '{{ .Values.application.ts_crypt_key }}'
         ports:
         - name: "{{ .Values.service.name }}"
           containerPort: {{ .Values.service.internalPort }}
