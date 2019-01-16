@@ -23,7 +23,7 @@ service:
   additionalHosts:
   path: /api
   externalPort: 80
-  internalPort: 8000
+  internalPort: 80
 postgresql:
   enabled: false
 resources:
