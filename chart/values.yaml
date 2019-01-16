@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 replicaCount: 1
 image:
-  repository: gitlab.example.com/group/project
+  repository: gitlab.com/ejectedspace/py-ts-api
   tag: stable
   pullPolicy: Always
   secrets:
@@ -14,6 +14,7 @@ application:
   migrateCommand:
   initializeCommand:
   secretName:
+  ts_crypt_key: 
 service:
   enabled: true
   name: web
@@ -21,8 +22,8 @@ service:
   url: my.host.com
   additionalHosts:
   path: /api
-  externalPort: 5000
-  internalPort: 5000
+  externalPort: 80
+  internalPort: 8000
 postgresql:
   enabled: false
 resources:
