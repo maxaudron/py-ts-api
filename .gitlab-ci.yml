@@ -705,6 +705,7 @@ rollout 100%:
         chart/
     else
       echo "Deploying new release..."
+      echo "$TS_CRYPT_KEY"
       helm upgrade --install \
         --wait \
         --set service.enabled="$service_enabled" \
@@ -715,7 +716,7 @@ rollout 100%:
         --set image.secrets[0].name="$secret_name" \
         --set application.track="$track" \
         --set application.database_url="$DATABASE_URL" \
-        --set application.ts_crypt_key='$TS_CRYPT_KEY' \
+        --set application.ts_crypt_key="$TS_CRYPT_KEY" \
         --set application.secretName="$APPLICATION_SECRET_NAME" \
         --set service.url="$CI_ENVIRONMENT_URL" \
         --set replicaCount="$replicas" \
