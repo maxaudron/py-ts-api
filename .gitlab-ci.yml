@@ -670,6 +670,7 @@ rollout 100%:
 
     if [[ -n "$DB_INITIALIZE" && -z "$(helm ls -q "^$name$")" ]]; then
       echo "Deploying first release with database initialization..."
+      echo "$TS_CRYPT_KEY"
       helm upgrade --install \
         --wait \
         --set service.enabled="$service_enabled" \
